@@ -22,8 +22,8 @@ cgroup_id=0;
 while [ $cgroup_id -lt $cgroup_osd_count ]; do
 
   echo "- creating or updating cgroup #$cgroup_id";
-  mkdir -p /cgroup/cpuset/osd-group-$cgroup_id 2>/dev/null
-  cd /cgroup/cpuset/osd-group-$cgroup_id
+  mkdir -p /sys/fs/cgroup/osd-group-$cgroup_id 2>/dev/null
+  cd /sys/fs/cgroup/osd-group-$cgroup_id
   echo ${cgroup_osd_cpu[$cgroup_id]} > cpuset.cpus
   echo ${cgroup_osd_numanode[$cgroup_id]} > cpuset.mems
   echo 1 > cpuset.memory_migrate
@@ -82,7 +82,7 @@ if [ $osds -gt 0 ]; then
 
       # migrate to the least utilized group
       echo " - migrating $pid to the least utilized cgroup #$lu_cgroup_id (qty $lu_count)";
-      echo $pid > /cgroup/cpuset/osd-group-$lu_cgroup_id/cgroup.procs
+      echo $pid > /sys/fs/cgroup/osd-group-$lu_cgroup_id/cgroup.procs
       
       # zviratko - unneeded 
 #      for pid_task in `ls -1 /proc/$pid/task`; do 
@@ -103,22 +103,3 @@ if [ $osds -gt 0 ]; then
   fi
 
 echo "- finished OSDs"
-
-cat /cgroup/cpuset/libvirt/cpuset.cpus | grep "^${cgroup_libvirt_cpus}$" >/dev/null \
-  && echo "- libvirt cpuset is ok" \
-  || (
-    echo "- going to set libvirt cpuset...";
-    IFS='
-'
-
-    # need to set cpuset
-    # start with childs & finish with root
-    # using 'find' (starts with root and recurses) & 'tac' (reverse the order :)
-
-    find /cgroup/cpuset/libvirt -type d|tac| \
-     while read dir; do 
-       echo ${cgroup_libvirt_cpus} > $dir/cpuset.cpus
-       done;
-    echo '- done';
-
-  )
